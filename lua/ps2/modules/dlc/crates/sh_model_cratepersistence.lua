@@ -8,7 +8,8 @@ CratePersistence.static.model = {
 	fields = {
 		itemPersistenceId = "int",
 		material = "string",
-		itemMap = "luadata" --lazy way
+		itemMap = "luadata", --lazy way
+		requireKey = "int"
 	},
 	belongsTo = {
 		ItemPersistence = {
@@ -37,6 +38,7 @@ function CratePersistence.static.createOrUpdateFromSaveTable( saveTable, doUpdat
 	:Then( function( crate )
 		crate.material = saveTable.material
 		crate.itemMap = saveTable.itemMap
+		crate.requireKey = saveTable.requireKey
 		return crate:save( )
 	end )
 end

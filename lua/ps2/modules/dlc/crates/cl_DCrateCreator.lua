@@ -88,8 +88,16 @@ Don't forget to upload the material to your fastdl, too!]] )
 			self.savedCrateMappings = data
 		end
 	end
-	
+
 	local cont = self:addFormItem( "Settings", self.openTableBtn )
+
+	self.isKeyRequiredCheckBox = vgui.Create( "DCheckBox" )
+	self.isKeyRequiredCheckBox:SetValue( true )
+	
+	local cont = self:addFormItem( "Require key to open", self.isKeyRequiredCheckBox )
+	-- hacky workaround, I don't know derma ¯\_(ツ)_/¯
+	cont:SetTall( self.isKeyRequiredCheckBox:GetWide( ) )
+
 end
 
 function PANEL:OnClose( )
@@ -103,6 +111,7 @@ function PANEL:SaveItem( saveTable )
 	
 	saveTable.material = self.manualEntry:GetText( )
 	saveTable.itemMap = self.savedCrateMappings
+	saveTable.requireKey = self.isKeyRequiredCheckBox:GetChecked( ) and 1 or 0
 end
 
 function PANEL:EditItem( persistence, itemClass )
@@ -111,6 +120,7 @@ function PANEL:EditItem( persistence, itemClass )
 	self.manualEntry:SetText( persistence.material )
 	self.materialPanel:SetMaterial( persistence.material )
 	self.savedCrateMappings = persistence.itemMap
+	self.isKeyRequiredCheckBox:SetValue( persistence.requireKey == 1 and true or false )
 end
 
 function PANEL:Validate( saveTable )
@@ -120,7 +130,7 @@ function PANEL:Validate( saveTable )
 	end
 	
 	if not self.savedCrateMappings then
-		return false, "The crate is emtpy! Please add some items!"
+		return false, "The crate is empty! Please add some items!"
 	end
 	
 	return true

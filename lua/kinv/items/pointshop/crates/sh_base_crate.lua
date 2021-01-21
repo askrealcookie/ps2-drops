@@ -5,6 +5,8 @@ ITEM.material = ""
 
 ITEM.category = "Misc"
 ITEM.itemMap = {} --Maps chance to item factory
+-- Use int instead of boolean because of bug with middleclass
+ITEM.requireKey = 1
 
 function ITEM.static:GetPointshopIconControl( )
     return "DPointshopMaterialIcon"
@@ -22,6 +24,7 @@ function ITEM.static.generateFromPersistence( itemTable, persistenceItem )
     ITEM.super.generateFromPersistence( itemTable, persistenceItem.ItemPersistence )
     itemTable.material = persistenceItem.material
     itemTable.itemMap = persistenceItem.itemMap
+    itemTable.requireKey = persistenceItem.requireKey
     local sortedChances = table.Copy(itemTable.itemMap)
     table.SortByMember( sortedChances, "chance", true )
     itemTable.itemMapSorted = sortedChances
@@ -53,6 +56,7 @@ function ITEM.static:GetRequiredKeyClass( )
 end
 
 function ITEM:CanBeUsed( )
+    if self.requireKey == 0 then return true end
     if not self:GetOwner( ):PS2_GetFirstItemOfClass( self.class:GetRequiredKeyClass( ) ) then
         return false, "You do not own the required key to open this crate"
     end
@@ -178,8 +182,11 @@ end
 
 function ITEM:Unbox( )
     local ply = self:GetOwner( )
-    local key = self:GetOwner( ):PS2_GetFirstItemOfClass( self.class:GetRequiredKeyClass( ) )
-    if not key then LibK.GLib.Error("ITEM:Unbox - Invalid Key") end
+    local key
+    if self.requireKey == 1 then
+        key = self:GetOwner( ):PS2_GetFirstItemOfClass( self.class:GetRequiredKeyClass( ) )
+        if not key then LibK.GLib.Error("ITEM:Unbox - Invalid Key") end
+    end
 
     local seed = math.random(10000)
     math.randomseed(seed)
@@ -216,12 +223,16 @@ function ITEM:Unbox( )
 
         item.inventory_id = ply.PS2_Inventory.id
         item:preSave( )
-        keyId = key.id
+        if self.requireKey == 1 then keyId = key.id end
         if Pointshop2.DB.CONNECTED_TO_MYSQL then
             local transaction = LibK.TransactionMysql:new(Pointshop2.DB)
             transaction:begin( )
             transaction:add( item:getSaveSql( ) ) -- Create Item
-            transaction:add( Format( "DELETE FROM kinv_items WHERE id IN(%i, %i)", self.id, key.id ) ) -- Remove crate & key
+            if self.requireKey == 1 then
+                transaction:add( Format( "DELETE FROM kinv_items WHERE id IN(%i)", self.id ) ) -- Remove only crate
+            else
+                transaction:add( Format( "DELETE FROM kinv_items WHERE id IN(%i, %i)", self.id, key.id ) ) -- Remove crate & key
+            end
             return transaction:commit( ):Then( function( )
                 return Pointshop2.DB.DoQuery( "SELECT LAST_INSERT_ID() as id" )
             end ):Then( function( id )
@@ -237,6 +248,7 @@ function ITEM:Unbox( )
             sql.Begin( )
             -- Remove crate and key
             self:remove( true ):Then( function( )
+                if self.requireKey == 0 then return true end
                 return key:remove( true )
             end):Then( function( )
                 item.inventory_id = ply.PS2_Inventory.id
@@ -259,11 +271,13 @@ function ITEM:Unbox( )
         })
 
         KInventory.ITEMS[crateId] = nil
-        KInventory.ITEMS[keyId] = nil
-        Pointshop2.LogCacheEvent( 'REMOVE', 'unbox', crateId )
-        Pointshop2.LogCacheEvent( 'REMOVE', 'unbox', keyId )
+        if self.requireKey == 1 then 
+            KInventory.ITEMS[keyId] = nil
+            Pointshop2.LogCacheEvent( 'REMOVE', 'unbox', keyId )
+            ply.PS2_Inventory:notifyItemRemoved( keyId )
+        end
         ply.PS2_Inventory:notifyItemRemoved( crateId )
-        ply.PS2_Inventory:notifyItemRemoved( keyId )
+        Pointshop2.LogCacheEvent( 'REMOVE', 'unbox', crateId )
 
         ply.PS2_Inventory:notifyItemAdded( item )
         KLogf( 4, "Player %s unboxed %s, got item %s", ply:Nick( ), self:GetPrintName( ) or self.class.PrintName, item:GetPrintName( ) or item.class.PrintName )

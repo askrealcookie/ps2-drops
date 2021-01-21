@@ -5,14 +5,22 @@ function PANEL:Init( )
 	function self.buttonsPanel:AddUseButton( )
 		self.useButton = vgui.Create( "DButton", self )
 		local name
+		-- KLogf(4, "Is key required (description)? " .. itemDesc.itemClass.requireKey)
+		local isKeyRequired = (itemDesc.itemClass.requireKey == 1 and true or false)
 		local keyClass = itemDesc.itemClass:GetRequiredKeyClass( )
 		if not keyClass then
-			KLogf( 3, "[ERROR] Invalid key class for item %s", tostring( itemDesc.itemClass ) )
-			name = "ERROR"
+			if isKeyRequired then
+				KLogf( 3, "[ERROR] Invalid key class for item %s", tostring( itemDesc.itemClass ) )
+				name = "ERROR"
+			end
 		else
 			name = keyClass.PrintName
 		end
-		self.useButton:SetText( "Open (Uses 1 " .. name .. ")" )
+		if isKeyRequired then
+			self.useButton:SetText( "Open (Uses 1 " .. name .. ")" )
+		else
+			self.useButton:SetText( "Open" )
+		end
 		self.useButton:DockMargin( 0, 5, 0, 0 )
 		self.useButton:Dock( TOP )
 		function self.useButton:DoClick( )
@@ -37,29 +45,33 @@ function PANEL:AddKeyInfo( )
 		self.singleUsePanel:Remove( )
 	end
 
-	self.singleUsePanel = vgui.Create( "DPanel", self )
-	self.singleUsePanel:Dock( TOP )
-	self.singleUsePanel:DockMargin( 0, 8, 0, 0 )
-	Derma_Hook( self.singleUsePanel, "Paint", "Paint", "InnerPanelBright" )
-	self.singleUsePanel:SetTall( 50 )
-	self.singleUsePanel:DockPadding( 5, 5, 5, 5 )
-	function self.singleUsePanel:PerformLayout( )
-		self:SizeToChildren( false, true )
-	end
+	local isKeyRequired = (self.itemClass.requireKey == 1 and true or false)
 
-	local name
-	local keyClass = self.itemClass:GetRequiredKeyClass( )
-	if not keyClass then
-		KLogf( 3, "[WARN] Invalid key class for item %s", tostring( self.itemClass.PrintName ) )
-		name = "<No Key Available>"
-	else
-		name = keyClass.PrintName
-	end
+	if isKeyRequired then
+		self.singleUsePanel = vgui.Create( "DPanel", self )
+		self.singleUsePanel:Dock( TOP )
+		self.singleUsePanel:DockMargin( 0, 8, 0, 0 )
+		Derma_Hook( self.singleUsePanel, "Paint", "Paint", "InnerPanelBright" )
+		self.singleUsePanel:SetTall( 50 )
+		self.singleUsePanel:DockPadding( 5, 5, 5, 5 )
+		function self.singleUsePanel:PerformLayout( )
+			self:SizeToChildren( false, true )
+		end
 
-	local label = vgui.Create( "DLabel", self.singleUsePanel )
-	label:SetText( "This item requires a " .. name .. " to open" )
-	label:Dock( TOP )
-	label:SizeToContents( )
+		local name
+		local keyClass = self.itemClass:GetRequiredKeyClass( )
+		if not keyClass then
+			KLogf( 3, "[WARN] Invalid key class for item %s", tostring( self.itemClass.PrintName ) )
+			name = "<No Key Available>"
+		else
+			name = keyClass.PrintName
+		end
+
+		local label = vgui.Create( "DLabel", self.singleUsePanel )
+		label:SetText( "This item requires a " .. name .. " to open" )
+		label:Dock( TOP )
+		label:SizeToContents( )
+	end
 end
 
 function PANEL:AddCrateContentInfo( )

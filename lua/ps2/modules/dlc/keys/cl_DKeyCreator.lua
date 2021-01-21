@@ -94,7 +94,10 @@ Don't forget to upload the material to your fastdl, too!]] )
 	
 	local classes = Pointshop2.Drops.GetCrateClasses( )
 	for _, itemClass in pairs( classes ) do
-		self.choice:AddOption( itemClass.PrintName ).class = itemClass
+		-- KLogf(4, itemClass.PrintName .. ": " .. (itemClass.requireKey and "true" or "false") )
+		if itemClass.requireKey == 1 then
+			self.choice:AddOption( itemClass.PrintName ).class = itemClass
+		end
 	end
 	
 	if #classes == 0 then

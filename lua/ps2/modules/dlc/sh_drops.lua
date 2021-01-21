@@ -1,3 +1,15 @@
+if SERVER then
+	local addonTbl = LibK._.find(LibK.addonsLoaded, function (addonTbl) return addonTbl.addonName == "Pointshop2" end)
+
+	-- display error about old addon version
+	hook.Add("PS2_PlayerFullyLoaded", "CheckVersion", function(ply) 
+		if LibK.version(addonTbl.version) < LibK.version("2.27.0") then
+		if not ply:IsAdmin() then return end
+		ply:PS2_DisplayError("[CRITICAL][ADMIN ONLY] Your version of the ps2-drops addon requires a newer version of Pointshop2. Please download 2.27.0 or later from https://github.com/Kamshak/Pointshop2", 999999)
+		end
+	end)
+end
+
 hook.Add( "PS2_ModulesLoaded", "DLC_Drops", function( )
 	local MODULE = Pointshop2.GetModule( "Pointshop 2 DLC" )
 	table.insert( MODULE.Blueprints, {
